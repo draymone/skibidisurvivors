@@ -21,6 +21,10 @@ class Player:
         self.x = 30
         self.y = 30
 
+        self.level = 0
+        self.skillpoints = 0
+        self.xp = 1
+
         self.cooldown = 0
 
     def tick(self):
@@ -65,6 +69,17 @@ class Player:
                    1,
                    1)
 
+    def draw_ui(self):
+        # Bar
+        pyxel.rect(0, 113, 128, 15, 1)
+
+        # Life bar
+        pyxel.rect(10, 117, 24, 8, 0)
+        pyxel.rect(10, 117, self.health*8, 8, 7)
+
+        # Skill points
+        pyxel.text(80, 118, str(self.skillpoints), 3)
+
     def damage(self):
         """Reduces the health by 1
 
@@ -73,6 +88,16 @@ class Player:
         self.health -= 1
         if self.health <= 0:
             self.GAME.game_over()
+
+    def xp_up(self, amount=1):
+        self.xp -= amount
+        if self.xp <= 0:
+            self.level_up()
+
+    def level_up(self):
+        self.level += 1
+        self.skillpoints += 1
+        self.xp += (math.e**self.level)//2
 
 
 class Projectile:
@@ -178,6 +203,7 @@ class Monster:
         # Bullets
         for projectile in self.GAME.projectiles:
             if self.check_collision(projectile.x, projectile.y):
+                self.GAME.player.xp_up()
                 self.GAME.projectiles.remove(projectile)
                 self.damage()
                 return
@@ -223,6 +249,7 @@ class Game:
         pyxel.init(128, 128, title="Obamium Survivor")
 
         self.running = True
+        self.pause_text = "PAUSE"
 
         self.player = Player(self)
         self.projectiles: List[Projectile] = []
@@ -233,10 +260,10 @@ class Game:
         pyxel.run(self.update, self.draw)
 
     def update(self):
-        if self.running:
-            if pyxel.btn(pyxel.KEY_ESCAPE):
-                pyxel.quit()
+        if pyxel.btnr(pyxel.KEY_P):
+            self.running = not self.running
 
+        if self.running:
             self.player.tick()
 
             for projectile in self.projectiles:
@@ -257,6 +284,14 @@ class Game:
 
         for monster in self.monsters:
             monster.draw()
+
+        self.player.draw_ui()
+
+        self.draw_pause()
+
+    def draw_pause(self):
+        if not self.running:
+            pyxel.text(55, 55, self.pause_text, 4)
 
     def instantiate_projectile(self, x, y, team):
         """Instantiate a projectile at the desired coordinates
@@ -287,6 +322,7 @@ class Game:
 
         """
         self.running = False
+        self.pause_text = "GAME OVER"
 
 
 if __name__ == '__main__':
