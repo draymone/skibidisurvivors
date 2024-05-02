@@ -15,7 +15,7 @@ class Player:
 
         self.SIZE = 10
         self.SPEED = 2
-        self.COOLDOWN = 30
+        self.COOLDOWN = 24
         self.health = 3
 
         self.x = 30
@@ -26,6 +26,9 @@ class Player:
         self.xp = 1
 
         self.cooldown = 0
+
+        # load images
+        pyxel.load("PYXEL_RESOURCE_FILE.pyxres")
 
     def tick(self):
         self.handle_movement()
@@ -57,17 +60,20 @@ class Player:
                                                  0)
                 self.cooldown = self.COOLDOWN
 
-    def draw(self):
-        pyxel.rect(self.x - self.SIZE // 2,
-                   self.y - self.SIZE // 2,
-                   self.SIZE,
-                   self.SIZE,
-                   11)
+    def handle_levelup(self):
+        pass
+        #TODO: listen to key
 
-        pyxel.circ(self.x,
-                   self.y,
-                   1,
-                   1)
+    def draw(self):
+
+        pyxel.blt(self.x - self.SIZE // 2,
+                  self.y - self.SIZE // 2,
+                  0,
+                  48,
+                  160,
+                  8,
+                  8,
+                  5)
 
     def draw_ui(self):
         # Bar
@@ -156,28 +162,28 @@ class Spawner:
 
     def spawn_ennemy(self):
         x = random.randint(10, 110)
-        size = 10
-        health = 1
 
-        # 1% chance to spawn golden monster
-        if random.randint(0, 100) >= 98:
-            size = 16
-            health = 3
+        roll = random.randint(0, 100)
 
-        self.GAME.instantiate_monster(x,
-                                      0,
-                                      size=size,
-                                      health=health)
+        if roll <= 20:
+            self.GAME.instantiate_monster(x,
+                                          0,
+                                          size=16,
+                                          sprite_x=0,
+                                          sprite_y=152,
+                                          speed=1.5,
+                                          health=3)
+        else:
+            self.GAME.instantiate_monster(x,
+                                          0)
 
     def evolve(self):
-        print("EVOLVE")
         self.COOLDOWN_MIN = math.ceil(self.COOLDOWN_MIN * self.EVOLUTION_STRENGHT)
         self.COOLDOWN_MAX = math.ceil(self.COOLDOWN_MAX * self.EVOLUTION_STRENGHT)
-        print("new cd:", self.COOLDOWN_MIN, self.COOLDOWN_MAX)
 
 
 class Monster:
-    def __init__(self, x, y, game, size=10, speed=1, health=1):
+    def __init__(self, x, y, game, size=8, speed=1, health=1, sprite_x=32, sprite_y=160):
         """Instantiate a projectile at the desired coordinates
 
         :param x:
@@ -187,6 +193,8 @@ class Monster:
         self.GAME = game
 
         self.size = size
+        self.sx = sprite_x
+        self.sy = sprite_y
         self.speed = speed
         self.health = health
 
@@ -234,14 +242,14 @@ class Monster:
         return diff < self.size
 
     def draw(self):
-        pyxel.rect(self.x - self.size // 2,
-                   self.y - self.size // 2,
-                   self.size, self.size,
-                   10)
-        pyxel.circ(self.x,
-                   self.y,
-                   1,
-                   8)
+        pyxel.blt(self.x - self.size // 2,
+                  self.y - self.size // 2,
+                  0,
+                  self.sx,
+                  self.sy,
+                  self.size,
+                  self.size,
+                  5)
 
 
 class Game:
@@ -275,7 +283,7 @@ class Game:
                 monster.tick()
 
     def draw(self):
-        pyxel.cls(0)
+        pyxel.cls(5)
 
         self.player.draw()
 
@@ -304,7 +312,7 @@ class Game:
         projectile = Projectile(x, y, team, self)
         self.projectiles.append(projectile)
 
-    def instantiate_monster(self, x, y, *, size=10, speed=1, health=1):
+    def instantiate_monster(self, x, y, *, size=8, speed=1, health=1, sprite_x=32, sprite_y=160):
         """Instantiate a projectile at the desired coordinates
 
         :param x:
@@ -312,9 +320,11 @@ class Game:
         :param size: the monster's size
         :param health:
         :param speed:
+        :param sprite_x: The sprite's x coordinate
+        :param sprite_y: The sprite's y coordinate
         :return:
         """
-        monster = Monster(x, y, self, size, speed, health)
+        monster = Monster(x, y, self, size, speed, health, sprite_x, sprite_y)
         self.monsters.append(monster)
 
     def game_over(self):
