@@ -42,8 +42,9 @@ class Player:
 
         if pyxel.btnr(pyxel.KEY_SPACE):
             if self.cooldown <= 0:
-                self.GAME.instantiate_ally_projectile(self.x + self.SIZE//2,
-                                                      self.y)
+                self.GAME.instantiate_projectile(self.x + self.SIZE//2,
+                                                 self.y,
+                                                 0)
                 self.cooldown = self.COOLDOWN
 
     def draw(self):
@@ -53,7 +54,6 @@ class Player:
 class Projectile:
     def __init__(self, x, y, team):
         self.team = team
-        
         self.x = x
         self.y = y
 
