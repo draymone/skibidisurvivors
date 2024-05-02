@@ -18,8 +18,13 @@ class Player:
         self.COOLDOWN = 24
         self.health = 3
 
-        self.x = 30
-        self.y = 30
+        # The number of canons
+        self.canon_count = 1
+        # The number of bullet fired per canon
+        self.bullet_count = 1
+
+        self.x = 60
+        self.y = 90
 
         self.level = 0
         self.skillpoints = 0
@@ -33,21 +38,21 @@ class Player:
     def tick(self):
         self.handle_movement()
         self.handle_attack()
+        self.handle_levelup()
 
     def handle_movement(self):
-        x, y = 0, 0
-
         if pyxel.btn(pyxel.KEY_Z):
-            y -= 1
+            if self.y > 5:
+                self.y -= 1
         elif pyxel.btn(pyxel.KEY_S):
-            y += 1
+            if self.y < 100:
+                self.y += 1
         if pyxel.btn(pyxel.KEY_D):
-            x += 1
+            if self.x < 125:
+                self.x += 1
         elif pyxel.btn(pyxel.KEY_Q):
-            x -= 1
-
-        self.x += x * self.SPEED
-        self.y += y * self.SPEED
+            if self.x > 5:
+                self.x -= 1
 
     def handle_attack(self):
         if self.cooldown > 0:
@@ -55,14 +60,37 @@ class Player:
 
         if pyxel.btnr(pyxel.KEY_SPACE):
             if self.cooldown <= 0:
-                self.GAME.instantiate_projectile(self.x,
-                                                 self.y,
-                                                 0)
                 self.cooldown = self.COOLDOWN
 
+                for x in range(-self.canon_count//2, self.canon_count//2):
+                    for y in range(0, self.bullet_count):
+                        self.GAME.instantiate_projectile(self.x + 3*x,
+                                                         self.y + 4*y,
+                                                         0)
+
     def handle_levelup(self):
-        pass
-        #TODO: listen to key
+        if pyxel.btnr(pyxel.KEY_1):
+            self.levelup_skill(0)
+        elif pyxel.btnr(pyxel.KEY_2):
+            self.levelup_skill(1)
+        elif pyxel.btnr(pyxel.KEY_3):
+            self.levelup_skill(2)
+        elif pyxel.btnr(pyxel.KEY_4):
+            self.levelup_skill(3)
+
+    def levelup_skill(self, i):
+        if self.skillpoints >= 1:
+            self.skillpoints -= 1
+
+        if i == 0:
+            self.canon_count += 1
+        elif i == 1:
+            self.bullet_count += 1
+        elif i == 2:
+            pass
+            #TODO: explosive boulets
+        elif i == 3:
+            self.COOLDOWN *= 0.8
 
     def draw(self):
 
@@ -103,7 +131,7 @@ class Player:
     def level_up(self):
         self.level += 1
         self.skillpoints += 1
-        self.xp += (math.e**self.level)//2
+        self.xp += 3*self.level
 
 
 class Projectile:
@@ -116,18 +144,37 @@ class Projectile:
         :param game: The "Game" object
         """
         self.GAME = game
+
+        self.SPEED = 2
+
         self.team = team
         self.x = x
         self.y = y
 
     def tick(self):
-        self.y -= 1
+        self.y -= self.SPEED
 
         if self.y <= -10:
             self.GAME.projectiles.remove(self)
 
     def draw(self):
         pyxel.rect(self.x, self.y, 1, 3, 11)
+
+
+def pick_number(weights):
+    """Pick a random element from the list, they are weighted
+
+    :param weights:
+    :return:
+    """
+    total = sum(weights)
+
+    roll = random.randint(0, total)
+    for i in range(len(weights)):
+        if roll <= weights[i]:
+            return i
+        roll -= weights[i]
+    return 0
 
 
 class Spawner:
@@ -141,13 +188,15 @@ class Spawner:
         :param game: The "Game" object
         """
         self.GAME = game
-        self.COOLDOWN_MIN = 15
-        self.COOLDOWN_MAX = 45
+        self.COOLDOWN_MIN = 3
+        self.COOLDOWN_MAX = 5
         self.EVOLUTION_COOLDOWN = 150
         self.EVOLUTION_STRENGHT = 0.8
 
+        self.spawn_weights = [100, 0, 0, 0, 0, 0, 0]
         self.cooldown = 0
         self.evolution_cooldown = self.EVOLUTION_COOLDOWN
+        self.evolution_stage = 0
 
     def tick(self):
         self.cooldown -= 1
@@ -161,25 +210,88 @@ class Spawner:
             self.evolve()
 
     def spawn_ennemy(self):
-        x = random.randint(10, 110)
+        x = random.randint(0, 128)
 
-        roll = random.randint(0, 100)
+        roll = pick_number(self.spawn_weights)
 
-        if roll <= 20:
+        # Mini skibidi
+        if roll == 0:
+            self.GAME.instantiate_monster(x,
+                                          0)
+        # Purple skibidi
+        elif roll == 1:
+            self.GAME.instantiate_monster(x,
+                                          0,
+                                          sprite_x=40,
+                                          sprite_y=160,
+                                          health=7)
+        # Big skibidi
+        elif roll == 2:
             self.GAME.instantiate_monster(x,
                                           0,
                                           size=16,
                                           sprite_x=0,
                                           sprite_y=152,
-                                          speed=1.5,
+                                          speed=0.8,
                                           health=3)
-        else:
+        # Golden skibidi
+        elif roll == 3:
             self.GAME.instantiate_monster(x,
-                                          0)
+                                          0,
+                                          size=16,
+                                          sprite_x=16,
+                                          sprite_y=152,
+                                          speed=0.8,
+                                          health=3)
+        # Farfadet skibidi
+        elif roll == 4:
+            self.GAME.instantiate_monster(x,
+                                          0,
+                                          size=16,
+                                          sprite_x=0,
+                                          sprite_y=168,
+                                          health=3)
+        # Priest skibidi
+        elif roll == 5:
+            self.GAME.instantiate_monster(x,
+                                          0,
+                                          size=16,
+                                          sprite_x=16,
+                                          sprite_y=168,
+                                          health=15)
+        # Mao skibidi
+        elif roll == 6:
+            self.GAME.instantiate_monster(x,
+                                          0,
+                                          size=16,
+                                          sprite_x=32,
+                                          sprite_y=168,
+                                          speed=0.5,
+                                          health=100)
 
     def evolve(self):
+        self.evolution_stage += 1
         self.COOLDOWN_MIN = math.ceil(self.COOLDOWN_MIN * self.EVOLUTION_STRENGHT)
         self.COOLDOWN_MAX = math.ceil(self.COOLDOWN_MAX * self.EVOLUTION_STRENGHT)
+
+        if self.evolution_stage == 10/5:
+            self.spawn_weights[2] = 20
+            self.spawn_weights[3] = 1
+        elif self.evolution_stage == 30/5:
+            self.spawn_weights[0] = 20
+            self.spawn_weights[4] = 30
+        elif self.evolution_stage == 45/5:
+            self.spawn_weights[0] = 0
+            self.spawn_weights[1] = 35
+        elif self.evolution_stage == 60/5:
+            self.spawn_weights[5] = 20
+        elif self.evolution_stage == 90/5:
+            self.spawn_weights = [0, 0, 0, 0, 0, 0, 100]
+
+            # Stop future evolutions
+
+
+            self.EVOLUTION_STRENGHT = 0
 
 
 class Monster:
