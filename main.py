@@ -1,7 +1,8 @@
-import pyxel
-import random
 import math
+import random
 from typing import List
+
+import pyxel
 
 
 class Player:
@@ -51,8 +52,8 @@ class Player:
                 self.cooldown = self.COOLDOWN
 
     def draw(self):
-        pyxel.rect(self.x - self.SIZE//2,
-                   self.y - self.SIZE//2,
+        pyxel.rect(self.x - self.SIZE // 2,
+                   self.y - self.SIZE // 2,
                    self.SIZE,
                    self.SIZE,
                    11)
@@ -151,11 +152,14 @@ class Monster:
         """
         x_diff = self.x - x
         y_diff = self.y - y
-        diff = math.sqrt(x_diff**2 + y_diff**2)
+        diff = math.sqrt(x_diff ** 2 + y_diff ** 2)
         return diff < self.SIZE
 
     def draw(self):
-        pyxel.rect(self.x - self.SIZE//2, self.y - self.SIZE//2, self.SIZE, self.SIZE, 10)
+        pyxel.rect(self.x - self.SIZE // 2,
+                   self.y - self.SIZE // 2,
+                   self.SIZE, self.SIZE,
+                   10)
 
 
 class Game:
