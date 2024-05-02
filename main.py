@@ -5,6 +5,22 @@ from typing import List
 import pyxel
 
 
+def pick_number(weights):
+    """Pick a random element from the list, they are weighted
+
+    :param weights:
+    :return:
+    """
+    total = sum(weights)
+
+    roll = random.randint(0, total)
+    for i in range(len(weights)):
+        if roll <= weights[i]:
+            return i
+        roll -= weights[i]
+    return 0
+
+
 class Player:
     def __init__(self, game):
         """
@@ -64,11 +80,10 @@ class Player:
             if self.cooldown <= 0:
                 self.cooldown = self.COOLDOWN
 
-                for x in range(-self.canon_count//2, self.canon_count//2):
+                for x in range(-self.canon_count//2+1, self.canon_count//2+1):
                     for y in range(0, self.bullet_count):
-                        self.GAME.instantiate_projectile(self.x + 3*x,
-                                                         self.y + 4*y,
-                                                         0)
+                        self.GAME.instantiate_projectile(self.x + 9*x,
+                                                         self.y + 9*y)
 
     def handle_levelup(self):
         if pyxel.btnr(pyxel.KEY_1):
@@ -165,27 +180,24 @@ class Player:
         self.xp -= amount
         if self.xp <= 0:
             self.level_up()
-
     def level_up(self):
         self.level += 1
         self.skillpoints += 1
-        self.xp += 3*self.level
+        self.xp += self.level**2+6
 
 
 class Projectile:
-    def __init__(self, x, y, team, game):
+    def __init__(self, x, y, game):
         """Instantiate a projectile at the desired coordinates
 
         :param x:
         :param y:
-        :param team: The projectile's team: 0 for the player, 1 for the monsters
         :param game: The "Game" object
         """
         self.GAME = game
 
-        self.speed = 0.5 + game.player.level//2
+        self.speed = 0.9 + game.player.level/5
 
-        self.team = team
         self.x = x
         self.y = y
 
@@ -196,23 +208,11 @@ class Projectile:
             self.GAME.projectiles.remove(self)
 
     def draw(self):
-        pyxel.rect(self.x, self.y, 1, 3, 11)
-
-
-def pick_number(weights):
-    """Pick a random element from the list, they are weighted
-
-    :param weights:
-    :return:
-    """
-    total = sum(weights)
-
-    roll = random.randint(0, total)
-    for i in range(len(weights)):
-        if roll <= weights[i]:
-            return i
-        roll -= weights[i]
-    return 0
+        pyxel.blt(self.x-2, self.y-2,
+                  0,
+                  58, 90,
+                  4, 4,
+                  5)
 
 
 class Spawner:
@@ -385,7 +385,17 @@ class Monster:
 
         :return:
         """
+        size = self.GAME.player.explosion_size
 
+        if size <= 0:
+            return
+
+        self.GAME.instantiate_explosion(self.x, self.y)
+
+        for monster in self.GAME.monsters:
+            if monster != self:
+                if self.check_collision(monster.x, monster.y):
+                    monster.damage()
 
     def check_collision(self, x, y):
         """Checks the collision with the specified projectile
@@ -410,6 +420,38 @@ class Monster:
                   5)
 
 
+class Explosion:
+    def __init__(self, x, y, game):
+        """Instantiate a projectile at the desired coordinates
+
+        :param x:
+        :param y:
+        :param game: The "Game" object
+        """
+        self.GAME = game
+
+        self.stage = 0
+
+        self.x = x
+        self.y = y
+
+    def tick(self):
+        self.stage += 0.3
+
+        if self.stage > 5:
+            self.GAME.explosions.remove(self)
+
+    def draw(self):
+        stage = math.floor(self.stage)
+
+        pyxel.blt(self.x - 8, self.y - 8,
+                  0,
+                  16+16*stage,
+                  104,
+                  16, 16,
+                  5)
+
+
 class Game:
     def __init__(self):
         pyxel.init(128, 128, title="Obamium Survivor")
@@ -422,6 +464,8 @@ class Game:
 
         self.spawner = Spawner(self)
         self.monsters: List[Monster] = []
+
+        self.explosions: List[Explosion] = []
 
         pyxel.run(self.update, self.draw)
 
@@ -440,6 +484,9 @@ class Game:
             for monster in self.monsters:
                 monster.tick()
 
+            for explosion in self.explosions:
+                explosion.tick()
+
     def draw(self):
         pyxel.cls(5)
 
@@ -451,6 +498,9 @@ class Game:
         for monster in self.monsters:
             monster.draw()
 
+        for explosion in self.explosions:
+            explosion.draw()
+
         self.player.draw_ui()
 
         self.draw_pause()
@@ -459,16 +509,25 @@ class Game:
         if not self.running:
             pyxel.text(55, 55, self.pause_text, 4)
 
-    def instantiate_projectile(self, x, y, team):
+    def instantiate_projectile(self, x, y):
         """Instantiate a projectile at the desired coordinates
 
         :param x:
         :param y:
-        :param team: The projectile's team: 0 for the player, 1 for the monsters
         :return:
         """
-        projectile = Projectile(x, y, team, self)
+        projectile = Projectile(x, y, self)
         self.projectiles.append(projectile)
+
+    def instantiate_explosion(self, x, y):
+        """Instantiate a projectile at the desired coordinates
+
+        :param x:
+        :param y:
+        :return:
+        """
+        explosion = Explosion(x, y, self)
+        self.explosions.append(explosion)
 
     def instantiate_monster(self, x, y, *, size=8, speed=1, health=1, sprite_x=32, sprite_y=160):
         """Instantiate a projectile at the desired coordinates
