@@ -180,8 +180,9 @@ class Player:
         self.xp -= amount
         if self.xp <= 0:
             self.level_up()
-    def level_up(self):
-        self.level += 1
+
+    def level_up(self, amount=1):
+        self.level += amount
         self.skillpoints += 1
         self.xp += self.level**2+6
 
@@ -271,7 +272,8 @@ class Spawner:
                                           sprite_x=0,
                                           sprite_y=152,
                                           speed=0.8,
-                                          health=3)
+                                          health=4,
+                                          score=5)
         # Golden skibidi
         elif roll == 3:
             self.GAME.instantiate_monster(x,
@@ -280,7 +282,8 @@ class Spawner:
                                           sprite_x=16,
                                           sprite_y=152,
                                           speed=0.8,
-                                          health=3)
+                                          health=3,
+                                          score=100)
         # Farfadet skibidi
         elif roll == 4:
             self.GAME.instantiate_monster(x,
@@ -288,7 +291,8 @@ class Spawner:
                                           size=16,
                                           sprite_x=0,
                                           sprite_y=168,
-                                          health=3)
+                                          health=3,
+                                          score=30)
         # Priest skibidi
         elif roll == 5:
             self.GAME.instantiate_monster(x,
@@ -296,7 +300,8 @@ class Spawner:
                                           size=16,
                                           sprite_x=16,
                                           sprite_y=168,
-                                          health=15)
+                                          health=15,
+                                          score=45)
         # Mao skibidi
         elif roll == 6:
             self.GAME.instantiate_monster(x,
@@ -305,7 +310,8 @@ class Spawner:
                                           sprite_x=32,
                                           sprite_y=168,
                                           speed=0.5,
-                                          health=100)
+                                          health=100,
+                                          score=10000)
 
     def evolve(self):
         self.evolution_stage += 1
@@ -327,13 +333,11 @@ class Spawner:
             self.spawn_weights = [0, 0, 0, 0, 0, 0, 100]
 
             # Stop future evolutions
-
-
             self.EVOLUTION_STRENGHT = 0
 
 
 class Monster:
-    def __init__(self, x, y, game, size=8, speed=1, health=1, sprite_x=32, sprite_y=160):
+    def __init__(self, x, y, game, size=8, speed=1, health=1, sprite_x=32, sprite_y=160, score=1):
         """Instantiate a projectile at the desired coordinates
 
         :param x:
@@ -347,6 +351,8 @@ class Monster:
         self.sy = sprite_y
         self.speed = speed
         self.health = health
+
+        self.score = score
 
         self.x = x
         self.y = y
@@ -377,7 +383,9 @@ class Monster:
         """
         self.health -= 1
         if self.health <= 0:
-            self.GAME.player.xp_up()
+            self.GAME.player.xp_up(self.score)
+            self.GAME.score += self.score
+
             self.GAME.monsters.remove(self)
 
     def explode(self):
@@ -459,6 +467,8 @@ class Game:
         self.running = True
         self.pause_text = "PAUSE"
 
+        self.score = 0
+
         self.player = Player(self)
         self.projectiles: List[Projectile] = []
 
@@ -507,7 +517,10 @@ class Game:
 
     def draw_pause(self):
         if not self.running:
-            pyxel.text(55, 55, self.pause_text, 4)
+            pyxel.rect(10, 10,
+                       100, 100,
+                       7)
+            pyxel.text(35, 55, self.pause_text, 0)
 
     def instantiate_projectile(self, x, y):
         """Instantiate a projectile at the desired coordinates
@@ -529,7 +542,15 @@ class Game:
         explosion = Explosion(x, y, self)
         self.explosions.append(explosion)
 
-    def instantiate_monster(self, x, y, *, size=8, speed=1, health=1, sprite_x=32, sprite_y=160):
+    def instantiate_monster(self,
+                            x,
+                            y, *,
+                            size=8,
+                            speed=1,
+                            health=1,
+                            sprite_x=32,
+                            sprite_y=160,
+                            score=1):
         """Instantiate a projectile at the desired coordinates
 
         :param x:
@@ -539,9 +560,10 @@ class Game:
         :param speed:
         :param sprite_x: The sprite's x coordinate
         :param sprite_y: The sprite's y coordinate
+        :param score: The score awarded by the monster
         :return:
         """
-        monster = Monster(x, y, self, size, speed, health, sprite_x, sprite_y)
+        monster = Monster(x, y, self, size, speed, health, sprite_x, sprite_y, score)
         self.monsters.append(monster)
 
     def game_over(self):
@@ -549,7 +571,7 @@ class Game:
 
         """
         self.running = False
-        self.pause_text = "GAME OVER"
+        self.pause_text = f"GAME OVER\nSCORE: {self.score}"
 
 
 if __name__ == '__main__':
