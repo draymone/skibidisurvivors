@@ -16,12 +16,14 @@ class Player:
         self.SIZE = 10
         self.SPEED = 2
         self.COOLDOWN = 24
-        self.health = 3
+        self.health = 5
 
         # The number of canons
         self.canon_count = 1
         # The number of bullet fired per canon
         self.bullet_count = 1
+        # The size of the explosion
+        self.explosion_size = 0
 
         self.x = 60
         self.y = 90
@@ -82,15 +84,14 @@ class Player:
         if self.skillpoints >= 1:
             self.skillpoints -= 1
 
-        if i == 0:
-            self.canon_count += 1
-        elif i == 1:
-            self.bullet_count += 1
-        elif i == 2:
-            pass
-            #TODO: explosive boulets
-        elif i == 3:
-            self.COOLDOWN *= 0.8
+            if i == 0:
+                self.canon_count += 1
+            elif i == 1:
+                self.bullet_count += 1
+            elif i == 2:
+                self.explosion_size += 1
+            elif i == 3:
+                self.COOLDOWN *= 0.8
 
     def draw(self):
 
@@ -108,11 +109,48 @@ class Player:
         pyxel.rect(0, 113, 128, 15, 1)
 
         # Life bar
-        pyxel.rect(10, 117, 24, 8, 0)
-        pyxel.rect(10, 117, self.health*8, 8, 7)
+        pyxel.rect(3, 117, 25, 8, 0)
+        pyxel.rect(3, 117, self.health*5, 8, 7)
 
         # Skill points
-        pyxel.text(80, 118, str(self.skillpoints), 3)
+        pyxel.text(120, 118, str(self.skillpoints), 3)
+
+        # Skills
+        # Canons
+        pyxel.blt(40, 116,
+                  0,
+                  48, 176,
+                  8, 8,
+                  5)
+        pyxel.text(50, 117,
+                   "1", 3)
+
+        # Bullets
+        pyxel.blt(60, 116,
+                  0,
+                  48, 168,
+                  8, 8,
+                  5)
+        pyxel.text(70, 117,
+                   "2", 3)
+
+        # Explosion
+        pyxel.blt(80, 116,
+                  0,
+                  56, 168,
+                  8, 8,
+                  5)
+        pyxel.text(90, 117,
+                   "3", 3)
+
+        # Reload
+        pyxel.blt(100, 116,
+                  0,
+                  56, 176,
+                  8, 8,
+                  5)
+        pyxel.text(110, 117,
+                   "4", 3)
 
     def damage(self):
         """Reduces the health by 1
@@ -145,14 +183,14 @@ class Projectile:
         """
         self.GAME = game
 
-        self.SPEED = 2
+        self.speed = 0.5 + game.player.level//2
 
         self.team = team
         self.x = x
         self.y = y
 
     def tick(self):
-        self.y -= self.SPEED
+        self.y -= self.speed
 
         if self.y <= -10:
             self.GAME.projectiles.remove(self)
@@ -323,8 +361,8 @@ class Monster:
         # Bullets
         for projectile in self.GAME.projectiles:
             if self.check_collision(projectile.x, projectile.y):
-                self.GAME.player.xp_up()
                 self.GAME.projectiles.remove(projectile)
+                self.explode()
                 self.damage()
                 return
         # Player
@@ -339,7 +377,15 @@ class Monster:
         """
         self.health -= 1
         if self.health <= 0:
+            self.GAME.player.xp_up()
             self.GAME.monsters.remove(self)
+
+    def explode(self):
+        """Explode, dealing area around
+
+        :return:
+        """
+
 
     def check_collision(self, x, y):
         """Checks the collision with the specified projectile
