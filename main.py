@@ -12,9 +12,11 @@ class Player:
         :param game: The "Game" object
         """
         self.GAME = game
+
         self.SIZE = 10
         self.SPEED = 2
-        self.COOLDOWN = 10
+        self.COOLDOWN = 30
+        self.health = 3
 
         self.x = 30
         self.y = 30
@@ -58,6 +60,20 @@ class Player:
                    self.SIZE,
                    11)
 
+        pyxel.circ(self.x,
+                   self.y,
+                   1,
+                   1)
+
+    def damage(self):
+        """Reduces the health by 1
+
+        :return:
+        """
+        self.health -= 1
+        if self.health <= 0:
+            self.GAME.game_over()
+
 
 class Projectile:
     def __init__(self, x, y, team, game):
@@ -94,25 +110,49 @@ class Spawner:
         :param game: The "Game" object
         """
         self.GAME = game
-        self.COOLDOWN_MIN = 50
-        self.COOLDOWN_MAX = 100
+        self.COOLDOWN_MIN = 15
+        self.COOLDOWN_MAX = 45
+        self.EVOLUTION_COOLDOWN = 150
+        self.EVOLUTION_STRENGHT = 0.8
 
         self.cooldown = 0
+        self.evolution_cooldown = self.EVOLUTION_COOLDOWN
 
     def tick(self):
         self.cooldown -= 1
+        self.evolution_cooldown -= 1
 
-        if self.cooldown <= 1:
+        if self.cooldown <= 0:
             self.cooldown = random.randint(self.COOLDOWN_MIN, self.COOLDOWN_MAX)
             self.spawn_ennemy()
+        if self.evolution_cooldown <= 0:
+            self.evolution_cooldown = self.EVOLUTION_COOLDOWN
+            self.evolve()
 
     def spawn_ennemy(self):
         x = random.randint(10, 110)
-        self.GAME.instantiate_monster(x, 0)
+        size = 10
+        health = 1
+
+        # 1% chance to spawn golden monster
+        if random.randint(0, 100) >= 98:
+            size = 16
+            health = 3
+
+        self.GAME.instantiate_monster(x,
+                                      0,
+                                      size=size,
+                                      health=health)
+
+    def evolve(self):
+        print("EVOLVE")
+        self.COOLDOWN_MIN = math.ceil(self.COOLDOWN_MIN * self.EVOLUTION_STRENGHT)
+        self.COOLDOWN_MAX = math.ceil(self.COOLDOWN_MAX * self.EVOLUTION_STRENGHT)
+        print("new cd:", self.COOLDOWN_MIN, self.COOLDOWN_MAX)
 
 
 class Monster:
-    def __init__(self, x, y, game):
+    def __init__(self, x, y, game, size=10, speed=1, health=1):
         """Instantiate a projectile at the desired coordinates
 
         :param x:
@@ -120,13 +160,16 @@ class Monster:
         :param game: The "Game" object
         """
         self.GAME = game
-        self.SIZE = 16
+
+        self.size = size
+        self.speed = speed
+        self.health = health
 
         self.x = x
         self.y = y
 
     def tick(self):
-        self.y += 1
+        self.y += self.speed
 
         if self.y >= 130:
             self.GAME.monsters.remove(self)
@@ -136,12 +179,21 @@ class Monster:
         for projectile in self.GAME.projectiles:
             if self.check_collision(projectile.x, projectile.y):
                 self.GAME.projectiles.remove(projectile)
-                self.GAME.monsters.remove(self)
+                self.damage()
                 return
         # Player
-        print("Checking collisions")
-        if self.check_collision(self.GAME.player.x, self.GAME.player.x):
-            self.GAME.game_over()
+        if self.check_collision(self.GAME.player.x, self.GAME.player.y):
+            self.GAME.player.damage()
+            self.damage()
+
+    def damage(self):
+        """Reduces the health by 1
+
+        :return:
+        """
+        self.health -= 1
+        if self.health <= 0:
+            self.GAME.monsters.remove(self)
 
     def check_collision(self, x, y):
         """Checks the collision with the specified projectile
@@ -153,13 +205,17 @@ class Monster:
         x_diff = self.x - x
         y_diff = self.y - y
         diff = math.sqrt(x_diff ** 2 + y_diff ** 2)
-        return diff < self.SIZE
+        return diff < self.size
 
     def draw(self):
-        pyxel.rect(self.x - self.SIZE // 2,
-                   self.y - self.SIZE // 2,
-                   self.SIZE, self.SIZE,
+        pyxel.rect(self.x - self.size // 2,
+                   self.y - self.size // 2,
+                   self.size, self.size,
                    10)
+        pyxel.circ(self.x,
+                   self.y,
+                   1,
+                   8)
 
 
 class Game:
@@ -213,14 +269,17 @@ class Game:
         projectile = Projectile(x, y, team, self)
         self.projectiles.append(projectile)
 
-    def instantiate_monster(self, x, y):
+    def instantiate_monster(self, x, y, *, size=10, speed=1, health=1):
         """Instantiate a projectile at the desired coordinates
 
         :param x:
         :param y:
+        :param size: the monster's size
+        :param health:
+        :param speed:
         :return:
         """
-        monster = Monster(x, y, self)
+        monster = Monster(x, y, self, size, speed, health)
         self.monsters.append(monster)
 
     def game_over(self):
