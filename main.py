@@ -80,10 +80,10 @@ class Player:
             if self.cooldown <= 0:
                 self.cooldown = self.COOLDOWN
 
-                for x in range(-self.canon_count//2+1, self.canon_count//2+1):
+                for x in range(-self.canon_count // 2 + 1, self.canon_count // 2 + 1):
                     for y in range(0, self.bullet_count):
-                        self.GAME.instantiate_projectile(self.x + 9*x,
-                                                         self.y + 9*y)
+                        self.GAME.instantiate_projectile(self.x + 9 * x,
+                                                         self.y + 9 * y)
 
     def handle_levelup(self):
         if pyxel.btnr(pyxel.KEY_1):
@@ -125,7 +125,7 @@ class Player:
 
         # Life bar
         pyxel.rect(3, 117, 25, 8, 0)
-        pyxel.rect(3, 117, self.health*5, 8, 7)
+        pyxel.rect(3, 117, self.health * 5, 8, 7)
 
         # Skill points
         pyxel.text(120, 118, str(self.skillpoints), 3)
@@ -184,7 +184,7 @@ class Player:
     def level_up(self, amount=1):
         self.level += amount
         self.skillpoints += 1
-        self.xp += self.level**2+6
+        self.xp += self.level ** 2 + 6
 
 
 class Projectile:
@@ -197,7 +197,7 @@ class Projectile:
         """
         self.GAME = game
 
-        self.speed = 0.9 + game.player.level/5
+        self.speed = 0.9 + game.player.level / 5
 
         self.x = x
         self.y = y
@@ -209,7 +209,7 @@ class Projectile:
             self.GAME.projectiles.remove(self)
 
     def draw(self):
-        pyxel.blt(self.x-2, self.y-2,
+        pyxel.blt(self.x - 2, self.y - 2,
                   0,
                   58, 90,
                   4, 4,
@@ -318,18 +318,18 @@ class Spawner:
         self.COOLDOWN_MIN = math.ceil(self.COOLDOWN_MIN * self.EVOLUTION_STRENGHT)
         self.COOLDOWN_MAX = math.ceil(self.COOLDOWN_MAX * self.EVOLUTION_STRENGHT)
 
-        if self.evolution_stage == 10/5:
+        if self.evolution_stage == 10 / 5:
             self.spawn_weights[2] = 20
             self.spawn_weights[3] = 1
-        elif self.evolution_stage == 30/5:
+        elif self.evolution_stage == 30 / 5:
             self.spawn_weights[0] = 20
             self.spawn_weights[4] = 30
-        elif self.evolution_stage == 45/5:
+        elif self.evolution_stage == 45 / 5:
             self.spawn_weights[0] = 0
             self.spawn_weights[1] = 35
-        elif self.evolution_stage == 60/5:
+        elif self.evolution_stage == 60 / 5:
             self.spawn_weights[5] = 20
-        elif self.evolution_stage == 90/5:
+        elif self.evolution_stage == 90 / 5:
             self.spawn_weights = [0, 0, 0, 0, 0, 0, 100]
 
             # Stop future evolutions
@@ -454,7 +454,7 @@ class Explosion:
 
         pyxel.blt(self.x - 8, self.y - 8,
                   0,
-                  16+16*stage,
+                  16 + 16 * stage,
                   104,
                   16, 16,
                   5)
